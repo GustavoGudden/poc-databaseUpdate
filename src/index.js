@@ -64,4 +64,8 @@ const generateCsv = async (table) => {
   });
 
   await csvWriter.writeRecords(data);
+
+  // exec(
+  //   `sqlite3 ./prisma/dev.db -csv -separator "," ".mode csv" ".output src/csvs/${table}.csv" "SELECT * FROM ${table};`
+  // );
 };
