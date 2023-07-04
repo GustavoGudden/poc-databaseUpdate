@@ -9,25 +9,29 @@ app.use(express.json());
 const prisma = new PrismaClient();
 
 // ROTAS
-app.post("/cadastrarPop", async (req, res) => {
+app.post("/", async (req, res) => {
+  const { name } = req.body;
+
   const createdPop = await insertPop({
     id: uuidv4(),
-    name: "teste",
+    name,
   });
 
-  res.send(JSON.stringify(createdPop));
+  res.status(201).send(JSON.stringify(createdPop));
   generateCsv("pops");
 });
 
-app.post("/update", async (req, res) => {
-  const { id, name } = req.body;
+app.put("/:pop_id", async (req, res) => {
+  const { pop_id } = req.params;
+  const { name } = req.body;
 
   await prisma.pop.update({
-    where: { id: id },
+    where: { id: pop_id },
     data: { name },
   });
-  generateCsv("pops");
+
   res.send("deu bom confia.");
+  generateCsv("pops");
 });
 
 app.listen(3001, () => console.log("rodando na porta 3001"));
@@ -48,6 +52,6 @@ const insertPop = async (pop) => {
 
 const generateCsv = (table) => {
   exec(
-    `sqlite3 D:/poc-impacto/poc-dump-generator/prisma/dev.db -csv -separator "," ".mode csv" ".output src/csvs/pops.csv" "SELECT * FROM ${table};`
+    `sqlite3 D:/poc-impacto/poc-dump-generator/prisma/dev.db -csv -separator "," ".mode csv" ".output src/csvs/${table}.csv" "SELECT * FROM ${table};`
   );
 };
