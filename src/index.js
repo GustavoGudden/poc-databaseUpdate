@@ -1,7 +1,7 @@
 const express = require("express");
-const { PrismaClient } = require("@prisma/client");
+const { PrismaClient, Prisma } = require("@prisma/client");
 const { v4: uuidv4 } = require("uuid");
-const { exec } = require("child_process");
+const { createObjectCsvWriter } = require("csv-writer");
 
 const app = express();
 app.use(express.json());
@@ -18,20 +18,20 @@ app.post("/", async (req, res) => {
   });
 
   res.status(201).send(JSON.stringify(createdPop));
-  generateCsv("pops");
+  await generateCsv("pops");
 });
 
 app.put("/:pop_id", async (req, res) => {
   const { pop_id } = req.params;
   const { name } = req.body;
 
-  await prisma.pop.update({
+  const updatedPop = await prisma.pop.update({
     where: { id: pop_id },
     data: { name },
   });
 
-  res.send("deu bom confia.");
-  generateCsv("pops");
+  res.send(updatedPop);
+  await generateCsv("pops");
 });
 
 app.listen(3001, () => console.log("rodando na porta 3001"));
@@ -50,8 +50,18 @@ const insertPop = async (pop) => {
   }
 };
 
-const generateCsv = (table) => {
-  exec(
-    `sqlite3 D:/poc-impacto/poc-dump-generator/prisma/dev.db -csv -separator "," ".mode csv" ".output src/csvs/${table}.csv" "SELECT * FROM ${table};`
-  );
+const generateCsv = async (table) => {
+  const data = await prisma.$queryRawUnsafe(`SELECT * FROM ${table}`);
+
+  const csvWriter = createObjectCsvWriter({
+    path: `src/csvs/${table}.csv`,
+    header: Object.keys(data[0]).map((key) => {
+      return {
+        id: key,
+        title: key,
+      };
+    }),
+  });
+
+  await csvWriter.writeRecords(data);
 };
